@@ -1,0 +1,31 @@
+filebeat.inputs:
+  - type: log
+    paths:
+      - /etc/app/logs/server_*.log
+    fields_under_root: true
+    fields: {
+      type: "json",
+      source: {
+        server: "alarm_stand",
+        project: "ods",      
+        application: "server"
+      }
+    }
+  - type: log
+    paths:
+      - /etc/app/logs/dpco_*.log
+    fields_under_root: true
+    fields: {
+      source: {
+        server: "alarm_stand",
+        project: "ods",      
+        application: "dpco"
+      }
+    }
+setup.kibana:
+  host: "kibana:5601"
+processors:
+  - drop_fields:
+      fields: ["agent.ephemeral_id", "agent.hostname", "agent.id", "agent.type", "agent.version", "agent.name", "host.name", "input.type", "log.offset"]
+output.logstash:
+  hosts: ["logstash:5044"]

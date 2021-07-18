@@ -1,0 +1,66 @@
+version: '3.2'
+services:
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.13.3
+        container_name: elasticsearch
+        environment:
+            - discovery.type=single-node
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        volumes:
+            - data:/usr/share/elasticsearch/data
+        ports:
+            - 9200:9200
+            - 9300:9300
+        networks:
+            - elk
+    
+    kibana:
+        image: docker.elastic.co/kibana/kibana:7.13.3  
+        container_name: kibana 
+        ports:
+            - "5601:5601"    
+        networks:
+            - elk
+        depends_on:
+            - elasticsearch
+
+    logstash:
+        image: docker.elastic.co/logstash/logstash:7.13.3
+        container_name: logstash
+        ports:
+            - "5000:5000"
+            - "9600:9600"
+            - "5044:5044"
+        environment:
+            LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+        volumes:
+            - ./logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+            - ./logstash/pipelines:/usr/share/logstash/config/pipelines:ro
+        networks:
+            - elk
+        depends_on:
+            - elasticsearch
+
+    filebeat:
+        image: docker.elastic.co/beats/filebeat:7.13.3
+        container_name: filebeat
+        command: filebeat -e -strict.perms=false
+        volumes:
+            - ./filebeat/:/etc/filebeat
+            - ./logs:/etc/app/logs
+            - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+            - temp_filebeat:/tmp/filebeat
+        networks:
+            - elk
+        depends_on:
+            - logstash
+
+volumes:
+    data:
+        driver: local
+    temp_filebeat:
+        driver: local
+
+networks:
+ elk:
+   driver: bridge
